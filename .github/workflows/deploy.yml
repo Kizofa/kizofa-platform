@@ -1,0 +1,19 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy to Render
+        run: |
+          # This uses Render's deploy hook feature
+          # You'll need to create a deploy hook in Render and add it as a secret
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" 

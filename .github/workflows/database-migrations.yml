@@ -1,0 +1,116 @@
+name: Database Migrations
+
+# Updated to enable workflow detection
+on:
+  # This workflow runs when a pull request is opened or updated on the develop branch
+  pull_request:
+    branches: [ develop ]
+    paths:
+      - 'apps/backend/prisma/schema.prisma'  # Only run when the schema file changes
+  
+  # Allow manual triggering of this workflow
+  workflow_dispatch:
+
+jobs:
+  # First job: Validate the schema changes
+  validate-schema:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'apps/backend/package-lock.json'
+      
+      - name: Install dependencies
+        run: |
+          cd apps/backend
+          npm ci
+      
+      - name: Validate Prisma schema
+        run: |
+          cd apps/backend
+          npx prisma validate
+          
+  # Second job: Create a new branch in PlanetScale and apply schema changes
+  create-database-branch:
+    needs: validate-schema
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'apps/backend/package-lock.json'
+      
+      - name: Install dependencies
+        run: |
+          cd apps/backend
+          npm ci
+      
+      - name: Install PlanetScale CLI
+        run: |
+          curl -fsSL https://github.com/planetscale/cli/releases/download/v0.146.0/pscale_0.146.0_linux_amd64.deb -o pscale.deb
+          sudo dpkg -i pscale.deb
+          rm pscale.deb
+      
+      - name: Create branch name
+        id: branch
+        run: |
+          BRANCH_NAME="schema-update-$(date +%Y%m%d-%H%M%S)"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+      
+      - name: Authenticate with PlanetScale
+        run: |
+          pscale auth login --service-token-id ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }} --service-token ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+      
+      - name: Create PlanetScale database branch
+        run: |
+          pscale branch create kizofa ${{ steps.branch.outputs.branch_name }} --from develop
+      
+      - name: Get branch connection string
+        id: connection
+        run: |
+          pscale branch show kizofa ${{ steps.branch.outputs.branch_name }} --format json > branch.json
+          CONNECTION_STRING=$(pscale password create kizofa ${{ steps.branch.outputs.branch_name }} migration-bot --format json | jq -r '.connection_string')
+          echo "connection_string=$CONNECTION_STRING" >> $GITHUB_ENV
+      
+      - name: Apply schema changes to branch
+        run: |
+          cd apps/backend
+          DATABASE_URL=${{ env.connection_string }} npx prisma db push
+      
+      - name: Create deploy request
+        id: deploy_request
+        run: |
+          DEPLOY_REQUEST_ID=$(pscale deploy-request create kizofa ${{ steps.branch.outputs.branch_name }} --into develop --format json | jq -r '.id')
+          echo "deploy_request_id=$DEPLOY_REQUEST_ID" >> $GITHUB_OUTPUT
+
+      - name: Add comment to PR with deploy request info
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Database Schema Changes
+
+              A new PlanetScale branch has been created: \`${{ steps.branch.outputs.branch_name }}\`
+
+              Deploy Request ID: \`${{ steps.deploy_request.outputs.deploy_request_id }}\`
+
+              To approve these changes, log into the [PlanetScale dashboard](https://app.planetscale.com) and review/approve the deploy request.
+              
+              **Note:** Schema changes should be carefully reviewed before approval.`
+            }) 
