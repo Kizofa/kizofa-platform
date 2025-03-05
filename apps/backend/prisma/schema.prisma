@@ -21,7 +21,7 @@ model User {
   firstName     String?
   lastName      String?
   phone         String?
-  profilePicture String?
+  profilePicture String?  // Stores URL to user's profile image
   role          Role      @default(USER)
   isVerified    Boolean   @default(false)
   kycStatus     KycStatus @default(PENDING)
