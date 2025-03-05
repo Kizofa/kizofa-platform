@@ -414,7 +414,44 @@ git push -u origin main
 2. Link your GitHub repository to Render
 3. Configure your web services for deployment
 
-### 8.3 Configure GitHub Actions
+### 8.3 Troubleshooting Render Deployment Issues
+
+#### Handling Native Dependencies (bcrypt)
+
+When deploying Node.js applications with native dependencies like bcrypt to Render, you may encounter binding-related errors. Here's how to fix them:
+
+1. Update your backend `package.json` to include a postinstall script that rebuilds bcrypt:
+
+```json
+{
+  "scripts": {
+    // ... other scripts
+    "postinstall": "if [ \"$RENDER\" = \"true\" ]; then npm rebuild bcrypt --build-from-source; fi"
+  }
+}
+```
+
+2. Configure Render build settings:
+   - **Root Directory**: `apps/backend` (for monorepo setups)
+   - **Build Command**: `export RENDER=true && npm install && npm rebuild bcrypt --build-from-source && cd ../.. && npm run backend:build`
+   - **Start Command**: `npm run start:prod`
+   - **Environment Variables**: Add `RENDER=true`
+
+3. These settings ensure that:
+   - The RENDER environment variable is set to trigger the conditional rebuild
+   - bcrypt is rebuilt from source during deployment
+   - The application is built from the monorepo root
+   - The start command runs directly from the backend directory
+
+#### Render Deployment Checklist
+
+- ✅ Set appropriate Node.js version (14.x, 16.x, or 18.x)
+- ✅ Configure environment variables (database connection strings, JWT secrets, etc.)
+- ✅ Ensure build command navigates back to root for monorepo setups
+- ✅ Verify that start command doesn't try to change directories if already in the correct directory
+- ✅ Add any native dependencies to the rebuild step
+
+### 8.4 Configure GitHub Actions
 
 Create `.github/workflows/ci.yml` file:
 
