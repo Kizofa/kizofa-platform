@@ -46,6 +46,7 @@ npm run admin:start
 - Backend API: http://localhost:3000
 - API Documentation: http://localhost:3000/api
 - Health Check: http://localhost:3000/health
+- Feature Flags: http://localhost:3000/config/feature-flags
 
 ## Documentation
 
@@ -56,6 +57,8 @@ Detailed documentation can be found in the `docs/` directory:
 - `developmentplan.md` - Overall development plan
 - `roadmap.md` - Project roadmap
 - `CONTEXT.md` - Platform context and architecture
+- `FEATURE-FLAGS.md` - Feature flags system documentation
+- `DATABASE-SCHEMA.md` - Database schema documentation
 
 ## Development Guidelines
 
@@ -63,6 +66,18 @@ Detailed documentation can be found in the `docs/` directory:
 - Use feature modules for organization
 - Write tests for all new features
 - Document API endpoints using Swagger
+- Use feature flags for gradual feature rollout
+
+## Feature Flags
+
+The platform implements a feature flags system that allows for:
+
+- Gradual feature rollout
+- Environment-specific configurations
+- A/B testing capabilities
+- Emergency feature toggles
+
+To learn more about using feature flags, see `docs/FEATURE-FLAGS.md`.
 
 ## GitHub Account Requirements
 

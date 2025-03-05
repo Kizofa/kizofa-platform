@@ -9,8 +9,9 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
 }
 
 model User {
@@ -20,9 +21,10 @@ model User {
   firstName     String?
   lastName      String?
   phone         String?
+  profilePicture String?  // Stores URL to user's profile image
   role          Role      @default(USER)
-  isVerified    Boolean   @default(false)
-  kycStatus     KycStatus @default(PENDING)
+  isVerified    Boolean   @default(false)  // Indicates if user's email is verified
+  kycStatus     KycStatus @default(PENDING) // User's KYC verification status
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   kyc           KYC?
