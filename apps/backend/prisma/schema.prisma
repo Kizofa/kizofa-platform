@@ -24,7 +24,7 @@ model User {
   profilePicture String?  // Stores URL to user's profile image
   role          Role      @default(USER)
   isVerified    Boolean   @default(false)  // Indicates if user's email is verified
-  kycStatus     KycStatus @default(PENDING)
+  kycStatus     KycStatus @default(PENDING) // User's KYC verification status
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   kyc           KYC?
